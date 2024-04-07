@@ -78,7 +78,7 @@ def load_hdf5_train():
     with h5py.File(_hdf5_file, 'r') as f:
         train_data = pd.DataFrame.from_records(
             ((1 if n.split('_')[1] == 'jumping' else 0, pd.DataFrame(d[:, 1:]))
-                for n, d in f['dataset/Train'].items()), columns=['label', 'interval'])
+                for n, d in f['dataset/Train'].items()), columns=['label', 'interval'])  # type: ignore
     return train_data
 
 
@@ -89,7 +89,7 @@ def load_hdf5_test():
     with h5py.File(_hdf5_file, 'r') as f:
         test_data = pd.DataFrame.from_records(
             ((1 if n.split('_')[1] == 'jumping' else 0, pd.DataFrame(d[:, 1:]))
-                for n, d, in f['dataset/Test'].items()), columns=['label', 'interval'])
+                for n, d, in f['dataset/Test'].items()), columns=['label', 'interval'])  # type: ignore
     return test_data
 
 
