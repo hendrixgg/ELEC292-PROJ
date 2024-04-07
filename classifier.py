@@ -23,29 +23,6 @@ def feature_extract(intervals):
     return pd.DataFrame.from_records(intervals.apply(lambda c: pd.DataFrame([c.max(), c.min(), c.max() - c.min(), c.mean(), c.median(), c.std(), c.var()]).to_numpy().flatten()))
 
 
-def classifier_eval(classifier: Pipeline, X_test, Y_test):
-    """
-    Evaluate the classifier.
-    """
-    Y_pred = classifier.predict(X_test)
-    Y_pred_proba = classifier.predict_proba(X_test)
-    accuracy = accuracy_score(Y_test, Y_pred)
-    recall = recall_score(Y_test, Y_pred)
-    f1_score = 2 * (accuracy * recall) / (accuracy + recall)
-    roc_auc = roc_auc_score(Y_test, Y_pred_proba[:, 1])
-    print(f"Accuracy: {accuracy}")
-    print(f"Recall: {recall}")
-    print(f"F1 Score: {f1_score}")
-    print(f"ROC AUC: {roc_auc}")
-
-    figure, axis = plt.subplots(1, 2, figsize=(10, 5))
-    ConfusionMatrixDisplay(confusion_matrix(Y_test, Y_pred), display_labels=[
-                           'Walking', 'Jumping']).plot(ax=axis[0])
-    fpr, tpr, _ = roc_curve(Y_test, Y_pred)
-    RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc).plot(ax=axis[1])
-    plt.show()
-
-
 def classifier_create(save_location: str):
     train_data = load_hdf5_train()
 
@@ -78,7 +55,26 @@ def classifier_test(save_file: str):
     with open(save_file, 'rb') as f:
         classifier = pickle.load(f)
 
-    classifier_eval(classifier, test_data.iloc[:, :-1], test_data['label'])
+    # Evaluate the classifier.
+    X_test = test_data.iloc[:, :-1]
+    Y_test = test_data['label']
+    Y_pred = classifier.predict(X_test)
+    Y_pred_proba = classifier.predict_proba(X_test)
+    accuracy = accuracy_score(Y_test, Y_pred)
+    recall = recall_score(Y_test, Y_pred)
+    f1_score = 2 * (accuracy * recall) / (accuracy + recall)
+    roc_auc = roc_auc_score(Y_test, Y_pred_proba[:, 1])
+    print(f"Accuracy: {accuracy}")
+    print(f"Recall: {recall}")
+    print(f"F1 Score: {f1_score}")
+    print(f"ROC AUC: {roc_auc}")
+
+    figure, axis = plt.subplots(1, 2, figsize=(10, 5))
+    ConfusionMatrixDisplay(confusion_matrix(Y_test, Y_pred), display_labels=[
+                           'Walking', 'Jumping']).plot(ax=axis[0])
+    fpr, tpr, _ = roc_curve(Y_test, Y_pred)
+    RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc).plot(ax=axis[1])
+    plt.show()
 
 
 if __name__ == "__main__":
