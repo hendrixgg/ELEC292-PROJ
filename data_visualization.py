@@ -7,7 +7,8 @@ if __name__ == "__main__":
     from mpl_toolkits.mplot3d import (Axes3D)
 
     # Load dataset
-    data = pd.read_csv('acceleration_data.csv')
+    data = pd.read_csv(
+        'sensor_data/csv/anapayaan/jumping/back_pant_pocket Acceleration without g 2024-04-02 14-57-08/Raw Data.csv')
 
     # Sample Acceleration vs. Time Plots
     walking_data = data[data['activity'] == 'walking']
@@ -17,9 +18,12 @@ if __name__ == "__main__":
 
     # Walking Acceleration vs. Time
     plt.subplot(2, 1, 1)
-    plt.plot(walking_data['time'], walking_data['acceleration_x'], label='X-axis')
-    plt.plot(walking_data['time'], walking_data['acceleration_y'], label='Y-axis')
-    plt.plot(walking_data['time'], walking_data['acceleration_z'], label='Z-axis')
+    plt.plot(walking_data['time'],
+             walking_data['acceleration_x'], label='X-axis')
+    plt.plot(walking_data['time'],
+             walking_data['acceleration_y'], label='Y-axis')
+    plt.plot(walking_data['time'],
+             walking_data['acceleration_z'], label='Z-axis')
     plt.title('Walking Acceleration vs. Time')
     plt.xlabel('Time')
     plt.ylabel('Acceleration')
@@ -27,9 +31,12 @@ if __name__ == "__main__":
 
     # Jumping Acceleration vs. Time
     plt.subplot(2, 1, 2)
-    plt.plot(jumping_data['time'], jumping_data['acceleration_x'], label='X-axis')
-    plt.plot(jumping_data['time'], jumping_data['acceleration_y'], label='Y-axis')
-    plt.plot(jumping_data['time'], jumping_data['acceleration_z'], label='Z-axis')
+    plt.plot(jumping_data['time'],
+             jumping_data['acceleration_x'], label='X-axis')
+    plt.plot(jumping_data['time'],
+             jumping_data['acceleration_y'], label='Y-axis')
+    plt.plot(jumping_data['time'],
+             jumping_data['acceleration_z'], label='Z-axis')
     plt.title('Jumping Acceleration vs. Time')
     plt.xlabel('Time')
     plt.ylabel('Acceleration')
@@ -48,7 +55,7 @@ if __name__ == "__main__":
             label='Jumping')
     ax.set_xlabel('X-axis Acceleration')
     ax.set_ylabel('Y-axis Acceleration')
-    ax.set_zlabel('Z-axis Acceleration')
+    # ax.set_zlabel('Z-axis Acceleration')
     ax.set_title('3D Trajectory Plot')
     plt.show()
 
@@ -64,9 +71,9 @@ if __name__ == "__main__":
     plt.show()
 
     # Box Plots for Sensor Locations
-    plt.boxplot([metadata['sensor_x'], metadata['sensor_y'], metadata['sensor_z']], labels=['X', 'Y', 'Z'])
+    plt.boxplot([metadata['sensor_x'], metadata['sensor_y'],
+                metadata['sensor_z']], labels=['X', 'Y', 'Z'])
     plt.title('Sensor Locations')
     plt.xlabel('Axis')
     plt.ylabel('Position')
     plt.show()
-
