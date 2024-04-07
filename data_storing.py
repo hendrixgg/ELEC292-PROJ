@@ -53,10 +53,10 @@ def create_hdf5():
 
                     # Store 5 second windows of sensor data in dataset group.
                     df.index = pd.to_datetime(df.index, unit='s')
-                    for interval in df.rolling(window='5s'):
-                        if interval.empty:
+                    for interval in df.rolling(window='5.1s'):
+                        if interval.index[-1] - interval.index[0] < pd.Timedelta('5s'):
                             continue
-                        intervals.append(interval.reset_index())
+                        intervals.append(interval)
                         labels.append(action)
 
         # Split (90%/10%) train vs. test and shuffle.
@@ -64,8 +64,15 @@ def create_hdf5():
             intervals, labels, test_size=0.1, random_state=42, shuffle=True)
         # Save dataset into HDF5 file.
         for i, (interval, label) in enumerate(zip(X_train, Y_train)):
+            # Revert the time column to seconds
+            interval.reset_index(inplace=True)
+            interval['Time (s)'] = interval['Time (s)'].apply(
+                lambda x: x.value / 1e9)
             Train_group.create_dataset(f"{i}_{label}", data=interval)
         for i, (interval, label) in enumerate(zip(X_test, Y_test)):
+            interval.reset_index(inplace=True)
+            interval['Time (s)'] = interval['Time (s)'].apply(
+                lambda x: x.value / 1e9)
             Test_group.create_dataset(f"{i}_{label}", data=interval)
 
 
