@@ -1,0 +1,74 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn.metrics import accuracy_score, recall_score, confusion_matrix, ConfusionMatrixDisplay, RocCurveDisplay, roc_auc_score, roc_curve
+
+import pickle
+
+from data_collection import load_hdf5_train, load_hdf5_test
+
+
+def preprocess(intervals: pd.Series, window_size: int) -> pd.Series:
+    """
+    Preprocess the data by applying SMA.
+    """
+    return intervals.apply(lambda x: x.rolling(window=window_size).mean())
+
+
+def feature_extract(intervals: pd.Series) -> pd.DataFrame:
+    # range is calculated by doing c.max() - c.min()
+    return pd.DataFrame.from_records(intervals.apply(lambda c: pd.DataFrame([c.max(), c.min(), c.max() - c.min(), c.mean(), c.median(), c.std(), c.var()]).to_numpy().flatten()))
+
+
+def classifier_eval(classifier: Pipeline, X_test, Y_test):
+    """
+    Evaluate the classifier.
+    """
+    Y_pred = classifier.predict(X_test)
+    accuracy = accuracy_score(Y_test, Y_pred)
+    recall = recall_score(Y_test, Y_pred)
+    cm = confusion_matrix(Y_test, Y_pred)
+    print(f"Accuracy: {accuracy}")
+    print(f"Recall: {recall}")
+    print(f"ROC AUC: {roc_auc_score(Y_test, Y_pred)}")
+
+    figure, axis = plt.subplots(1, 2, figsize=(10, 5))
+    ConfusionMatrixDisplay(confusion_matrix(Y_test, Y_pred)).plot(ax=axis[0])
+    fpr, tpr, _ = roc_curve(Y_test, Y_pred)
+    RocCurveDisplay(fpr=fpr, tpr=tpr).plot(ax=axis[1])
+
+
+def create_classifier(save_location: str):
+    train_data = load_hdf5_train()
+
+    # Extract features from each interval. Drop NaN valued rows.
+    train_data = pd.concat(
+        [feature_extract(preprocess(train_data['interval'], 10)), train_data['label']], axis=1).dropna()
+
+    # Train the classifier.
+    classifier_minmax = make_pipeline(
+        MinMaxScaler(), LogisticRegression(random_state=42, max_iter=1000))
+    classifier_minmax.fit(train_data.iloc[:, :-1], train_data['label'])
+
+    with open(save_location, 'wb') as f:
+        pickle.dump(classifier_minmax, f)
+
+
+def test_classifier(model_file: str):
+    # Prepare the test data.
+    test_data = load_hdf5_test()
+    test_data = pd.concat(
+        [feature_extract(preprocess(test_data['interval'], 10)), test_data['label']], axis=1).dropna()
+
+    # Load the model.
+    with open(model_file, 'rb') as f:
+        classifier = pickle.load(f)
+
+    classifier_eval(classifier, test_data.iloc[:, :-1], test_data['label'])
+
+
+if __name__ == "__main__":
+    create_classifier('classifier.pkl')
+    test_classifier('classifier.pkl')

@@ -3,13 +3,16 @@ import zipfile
 import os
 import h5py
 import pandas as pd
+from sklearn.model_selection import train_test_split
+
+_hdf5_file = 'sensor_data.hdf5'
 
 
 def unzip_sensor_data():
     """
     Unzip data from the sensor_data_raw folder and put it into the sensor_data_raw folder
     """
-    # Unzip each person's data
+    # Unzip each person's data.
     for dir in os.listdir('./sensor_data_raw'):
         # Unzip data for each action.
         for dir_type in ['walking', 'jumping']:
@@ -27,42 +30,67 @@ def create_hdf5():
     """
     Create one HDF5 file for all the data.
     """
-    with h5py.File('./sensor_data.hdf5', 'a') as f:
+    intervals, labels = [], []
+    with h5py.File(_hdf5_file, 'w') as f:
+        # Create a group for the organized data.
+        dataset_group = f.create_group('dataset')
+        Train_group = dataset_group.create_group('Train')
+        Test_group = dataset_group.create_group('Test')
         # Create a group for each person.
         for person in os.listdir('./sensor_data/csv'):
             person_group = f.create_group(person)
             # Create a dataset for each action (walking, jumping) and phone position. Then, store the data from csv's in it.
             for action in os.listdir(f'./sensor_data/csv/{person}'):
-                for dir in os.listdir(f'./sensor_data/csv/{person}/{action}'):
+                for i, dir in enumerate(os.listdir(f'./sensor_data/csv/{person}/{action}')):
                     phone_position = dir.split(' ')[0]
                     df = pd.read_csv(
                         f'./sensor_data/csv/{person}/{action}/{dir}/Raw Data.csv')
+                    if not type(df) == pd.DataFrame:
+                        break
                     # Store sensor data in person group.
                     person_group.create_dataset(
                         f'{action}_{phone_position}', data=df)
-                    # Now convert to 5 second intervals.
+                    # Now convert to 5 second windows and add labels.
+                    j = 0
+                    for i in range(0, len(df.index)):
+                        # Ensure that there is a 5 second window.
+                        while j < len(df.index) and df['Time (s)'][j] - df['Time (s)'][i] < 5:
+                            j += 1
+                        if j > len(df.index):
+                            break
+                        intervals.append(df.iloc[i:j, :])
+                        labels.append(action)
 
-        # Create a group for the useably organized dataset.
-        # dataset_group = f.create_group('dataset')
-        # Train_group = dataset_group.create_group('Train')
-        # Test_group = dataset_group.create_group('Test')
+        # Split (90%/10%) train vs. test and shuffle.
+        X_train, X_test, Y_train, Y_test = train_test_split(
+            intervals, labels, test_size=0.1, random_state=42, shuffle=True)
+        # Save dataset into HDF5 file.
+        for i, (interval, label) in enumerate(zip(X_train, Y_train)):
+            Train_group.create_dataset(f"{i}_{label}", data=interval)
+        for i, (interval, label) in enumerate(zip(X_test, Y_test)):
+            Test_group.create_dataset(f"{i}_{label}", data=interval)
 
 
-"""
-- take each table of data for a particular (action, phone_position)
-    
-    - create an empty list of all the 5 second windows
-    - now want to iterate and pick out all 5s windows
-        - initialize 2 pointers i, j at first row
-        - while time[j] - time[i] < 5: j++
-        - now the interval size is 5 seconds, interval = [[ti, xi, yi, zi], ..., [ti, xj, yj, zj]]
-        - save interval.flatten()
-    
+def load_hdf5_train():
+    """
+    Load the HDF5 file and return the train data.
+    """
+    with h5py.File(_hdf5_file, 'r') as f:
+        train_data = pd.DataFrame.from_records(
+            ((1 if n.split('_')[1] == 'jumping' else 0, pd.DataFrame(d[:, 1:]))
+                for n, d in f['dataset/Train'].items()), columns=['label', 'interval'])
+    return train_data
 
 
-
-
-"""
+def load_hdf5_test():
+    """
+    Load the HDF5 file and return the test data.
+    """
+    with h5py.File(_hdf5_file, 'r') as f:
+        test_data = pd.DataFrame.from_records(
+            ((1 if n.split('_')[1] == 'jumping' else 0, pd.DataFrame(d[:, 1:]))
+                for n, d, in f['dataset/Test'].items()), columns=['label', 'interval'])
+    return test_data
 
 
 if __name__ == "__main__":
