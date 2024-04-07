@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score, recall_score, confusion_matrix, Conf
 
 import pickle
 
-from data_collection import load_hdf5_train, load_hdf5_test
+from data_storing import load_hdf5_train, load_hdf5_test
 
 
 def preprocess(intervals: pd.Series, window_size: int) -> pd.Series:
@@ -16,9 +16,10 @@ def preprocess(intervals: pd.Series, window_size: int) -> pd.Series:
     """
     return intervals.apply(lambda x: x.rolling(window=window_size).mean())
 
+# range is calculated by doing c.max() - c.min()
 
-def feature_extract(intervals: pd.Series) -> pd.DataFrame:
-    # range is calculated by doing c.max() - c.min()
+
+def feature_extract(intervals):
     return pd.DataFrame.from_records(intervals.apply(lambda c: pd.DataFrame([c.max(), c.min(), c.max() - c.min(), c.mean(), c.median(), c.std(), c.var()]).to_numpy().flatten()))
 
 
