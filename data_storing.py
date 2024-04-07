@@ -44,21 +44,19 @@ def create_hdf5():
                 for i, dir in enumerate(os.listdir(f'./sensor_data/csv/{person}/{action}')):
                     phone_position = dir.split(' ')[0]
                     df = pd.read_csv(
-                        f'./sensor_data/csv/{person}/{action}/{dir}/Raw Data.csv')
+                        f'./sensor_data/csv/{person}/{action}/{dir}/Raw Data.csv', index_col=0)
                     if not type(df) == pd.DataFrame:
                         break
                     # Store sensor data in person group.
                     person_group.create_dataset(
-                        f'{action}_{phone_position}', data=df)
-                    # Now convert to 5 second windows and add labels.
-                    j = 0
-                    for i in range(0, len(df.index)):
-                        # Ensure that there is a 5 second window.
-                        while j < len(df.index) and df['Time (s)'][j] - df['Time (s)'][i] < 5:
-                            j += 1
-                        if j > len(df.index):
-                            break
-                        intervals.append(df.iloc[i:j, :])
+                        f'{action}_{phone_position}', data=df.reset_index())
+
+                    # Store 5 second windows of sensor data in dataset group.
+                    df.index = pd.to_datetime(df.index, unit='s')
+                    for interval in df.rolling(window='5s'):
+                        if interval.empty:
+                            continue
+                        intervals.append(interval.reset_index())
                         labels.append(action)
 
         # Split (90%/10%) train vs. test and shuffle.
@@ -76,6 +74,7 @@ def load_hdf5_train():
     Load the HDF5 file and return the train data.
     """
     with h5py.File(_hdf5_file, 'r') as f:
+        # Dropping the first column which is the Time (s).
         train_data = pd.DataFrame.from_records(
             ((1 if n.split('_')[1] == 'jumping' else 0, pd.DataFrame(d[:, 1:]))
                 for n, d in f['dataset/Train'].items()), columns=['label', 'interval'])  # type: ignore
@@ -87,6 +86,7 @@ def load_hdf5_test():
     Load the HDF5 file and return the test data.
     """
     with h5py.File(_hdf5_file, 'r') as f:
+        # Dropping the first column which is the Time (s).
         test_data = pd.DataFrame.from_records(
             ((1 if n.split('_')[1] == 'jumping' else 0, pd.DataFrame(d[:, 1:]))
                 for n, d, in f['dataset/Test'].items()), columns=['label', 'interval'])  # type: ignore
