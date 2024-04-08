@@ -77,5 +77,6 @@ def classifier_test(save_file: str):
 
 
 if __name__ == "__main__":
+    # uncomment this to create the classifier. This will take a few minutes.
     # classifier_create('classifier.pkl')
     classifier_test('classifier.pkl')
