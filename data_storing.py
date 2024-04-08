@@ -10,7 +10,7 @@ _hdf5_file = 'sensor_data.hdf5'
 
 def unzip_sensor_data():
     """
-    Unzip data from the sensor_data_raw folder and put it into the sensor_data_raw folder
+    Unzip data from the sensor_data_raw folder and put it into the sensor_data/csv folder
     """
     # Unzip each person's data.
     for dir in os.listdir('./sensor_data_raw'):
@@ -39,17 +39,15 @@ def create_hdf5():
         # Create a group for each person.
         for person in os.listdir('./sensor_data/csv'):
             person_group = f.create_group(person)
-            # Create a dataset for each action (walking, jumping) and phone position. Then, store the data from csv's in it.
+            # Create a group for each action (walking, jumping) and phone position. Then, store the data from csv's in it.
             for action in os.listdir(f'./sensor_data/csv/{person}'):
                 for i, dir in enumerate(os.listdir(f'./sensor_data/csv/{person}/{action}')):
                     phone_position = dir.split(' ')[0]
                     df = pd.read_csv(
                         f'./sensor_data/csv/{person}/{action}/{dir}/Raw Data.csv', index_col=0)
-                    if not type(df) == pd.DataFrame:
-                        break
                     # Store sensor data in person group.
                     person_group.create_dataset(
-                        f'{action}_{phone_position}', data=df.reset_index())
+                        f'{action}_{phone_position}', data=df.reset_index(), compression='gzip', compression_opts=9)
 
                     # Store 5 second windows of sensor data in dataset group.
                     df.index = pd.to_datetime(df.index, unit='s')
@@ -64,16 +62,18 @@ def create_hdf5():
             intervals, labels, test_size=0.1, random_state=42, shuffle=True)
         # Save dataset into HDF5 file.
         for i, (interval, label) in enumerate(zip(X_train, Y_train)):
-            # Revert the time column to seconds
+            # Revert the time column to seconds.
             interval.reset_index(inplace=True)
             interval['Time (s)'] = interval['Time (s)'].apply(
                 lambda x: x.value / 1e9)
-            Train_group.create_dataset(f"{i}_{label}", data=interval)
+            Train_group.create_dataset(
+                f"{i}_{label}", data=interval, compression='gzip', compression_opts=9)
         for i, (interval, label) in enumerate(zip(X_test, Y_test)):
             interval.reset_index(inplace=True)
             interval['Time (s)'] = interval['Time (s)'].apply(
                 lambda x: x.value / 1e9)
-            Test_group.create_dataset(f"{i}_{label}", data=interval)
+            Test_group.create_dataset(
+                f"{i}_{label}", data=interval, compression='gzip', compression_opts=9)
 
 
 def load_hdf5_train():

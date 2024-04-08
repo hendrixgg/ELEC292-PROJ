@@ -88,7 +88,7 @@ def load_file():
         filetypes=[("CSV files", "*.csv")])
     if not file_path:
         return
-    output_data.to_csv(file_path)
+    output_data.to_csv(file_path, index=False)
 
 
 # df = pd.read_csv(

@@ -16,10 +16,9 @@ def preprocess(intervals: pd.Series, window_size: int) -> pd.Series:
     """
     return intervals.apply(lambda x: x.rolling(window=window_size).mean())
 
-# range is calculated by doing c.max() - c.min()
-
 
 def feature_extract(intervals):
+    # range is calculated by doing c.max() - c.min()
     return pd.DataFrame.from_records(intervals.apply(lambda c: pd.DataFrame([c.max(), c.min(), c.max() - c.min(), c.mean(), c.median(), c.std(), c.var()]).to_numpy().flatten()))
 
 
@@ -78,5 +77,5 @@ def classifier_test(save_file: str):
 
 
 if __name__ == "__main__":
-    classifier_create('classifier.pkl')
+    # classifier_create('classifier.pkl')
     classifier_test('classifier.pkl')
